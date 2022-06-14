@@ -1,0 +1,82 @@
+program: train.py
+method: grid
+metric:
+  goal: minimize
+  name: eval_loss
+
+parameters:
+  model:
+    values: [resnet18, resnet18_ciga_ssl, resnet50, vit_small_r26_s32_224]
+  pretrained:
+    # The train.py script will skip the not pretrained resnet18_ciga_ssl. It doesn't
+    # make sense to test non-pretrained resnet18_ciga_ssl because that is the same
+    # as resnet18 from scratch.
+    values: [true, false]
+  data-dir:
+    values:
+      - data/task1_tumor_notumor/images/
+      - data/task2_tils/images-tcga-tils/pancancer/
+      - data/task3_msi_crc_ffpe/images/
+      - data/task4_msi_crc_frozen/images/
+      - data/task5_msi_stad_ffpe/images/
+      - data/task6_precancer_vs_benign_polyps/images-split/
+  seed:
+    value: 42
+  lr:
+    value: 0.0001
+  freeze-encoder:
+    value: false
+  epochs:
+    value: 500
+  sched:
+    value: cosine
+  opt:
+    value: adamw
+  opt-eps:
+    value: .001
+  warmup-lr:
+    value: 1e-6
+  weight-decay:
+    value: 0.01
+  drop:
+    value: 0.3
+  drop-path:
+    value: 0.2
+  model-ema:
+    value: true
+  model-ema-decay:
+    value: 0.9999
+  aa:
+    value: rand-m9-mstd0.5
+  remode:
+    value: pixel
+  reprob:
+    value: 0.2
+  amp:
+    value: true
+  train-split:
+    value: train
+  val-split:
+    value: val
+  workers:
+    value: 4
+  num-classes:
+    value: 2
+  batch-size:
+    value: 84
+  decay-epochs:
+    value: 2.4
+  decay-rate:
+    value: .97
+  log-wandb:
+    value: true
+  experiment:
+    value: neuripsdb
+  output:
+    value: sweep-output/
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_boolean_flags}
