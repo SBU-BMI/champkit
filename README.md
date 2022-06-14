@@ -1,6 +1,7 @@
 # ChampKit
 
 [![Overview of ChampKit](assets/figure-overview.webp)](assets/figure-overview.webp?raw=true)
+<sub>_ChampKit_: Comprehensive Histopathology Assessment of Model Predictions toolKit.</sub>
 
 A benchmarking toolkit for patch-based image classification in histopathology.
 
