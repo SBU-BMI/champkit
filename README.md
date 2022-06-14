@@ -29,9 +29,8 @@ To reproduce our submission to the NeurIPS 2022 Datasets & Benchmarks Track (**T
     ```bash
     git clone https://github.com/kaczmarj/champkit
     cd champkit
-    # git checkout v0.1.0 # TODO: add this after we tag the version
+    git checkout v0.1.0
     ```
-    - **TODO**: tag version 0.1.0 after verifying reproducibility.
 2. Install software dependencies. See [Software environment](#software-environment) for details.
     ```
     conda env create -f environment.yml -n champkit
