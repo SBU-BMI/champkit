@@ -1,7 +1,6 @@
 # ChampKit
 
 [![Overview of ChampKit](assets/figure-overview.webp)](assets/figure-overview.webp?raw=true)
-<sub>_ChampKit_: Comprehensive Histopathology Assessment of Model Predictions toolKit.</sub>
 
 A benchmarking toolkit for patch-based image classification in histopathology.
 
@@ -165,7 +164,7 @@ We would love to incorporate your dataset into ChampKit! Please [submit an issue
 
 ## Using other models
 
-We use the excellent [`timm`](https://rwightman.github.io/pytorch-image-models/) package to have access to many models. Newly published models tend to be added to `timm` quickly, but there might be cases where you want to use a model that `timm` does not have. In those cases, please add a PyTorch implementation of your model to [`models.py`](models.py). See that file for examples of custom models or custom pretrained weights. Be sure to register your model with `timm` with the decorator `@timm.models.register_model`. This makes it possible to use the model with `timm.create_model(MODEL_NAME)`.
+We use the excellent [`timm`](https://rwightman.github.io/pytorch-image-models/) package to have access to many models. Newly published models tend to be added to `timm` quickly, but there might be cases where you want to use a model that `timm` does not have. In those cases, please add a PyTorch implementation of your model to [`models/`](models/). See that file for examples of custom models or custom pretrained weights. Be sure to register your model with `timm` with the decorator `@timm.models.register_model`. This makes it possible to use the model with `timm.create_model(MODEL_NAME)`.
 
 # Citations
 
@@ -287,7 +286,7 @@ Please cite the corresponding papers for any datasets you use.
 6. I want to evaluate multiple training runs of the same model, but the result is always the same. Help!?
     - The `train.py` was written (originally by Ross Wightman) to reproduce training results when using the same seed. If you want to train multiple runs of a model, use different `--seed` values in `train.py`. The default is `--seed=42`.
 7. How do I benchmark transfer learning from my favorite self-supervised histology model?
-    - ChampKit includes a self-supervised model from [Ciga et al. (2022)](https://github.com/ozanciga/self-supervised-histopathology). If you want to use a different model, it will have to be added to ChampKit. In general, code will have to be added to `models.py` that downloads the weights and loads them into a PyTorch network. The architecture will have to be implemented if it does not exist in `timm`. Pull requests are welcome! We are happy to work with you to add models to ChampKit.
+    - ChampKit includes a self-supervised model from [Ciga et al. (2022)](https://github.com/ozanciga/self-supervised-histopathology). If you want to use a different model, it will have to be added to ChampKit. In general, code will have to be added to [`models/`](models/) that downloads the weights and loads them into a PyTorch network. The architecture will have to be implemented if it does not exist in `timm`. Pull requests are welcome! We are happy to work with you to add models to ChampKit.
 8. Why do you want me to use `python -m wandb` instead of `wandb`?
     - Using `python -m wandb` ensures that you use the wandb command installed in the champkit python environment (assuming the champkit conda environment is activated). If you use `wandb` directly, it is possible that this points to a different python environment than champkit. For example, if one had previously installed wandb with `pip install --user wandb`, the wandb executable would be in `~/.local/bin/wandb` and might be used instead of the wandb in the champkit environment.
     - In general, using `python -m PROGRAM` is better practice than using `PROGRAM` directly, because `python -m PROGRAM` guarantees we use `PROGRAM` installed in the current python environment. Using `PROGRAM` on its own relies on the `$PATH` variable, and it is possible that there exist multiple `PROGRAM` installations, one of which could appear in `$PATH` before the one we _think_ we are using.

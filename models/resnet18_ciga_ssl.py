@@ -1,4 +1,4 @@
-"""Register additional models in timm."""
+"""Implement pre-trained histopathology model from Ciga et al. 2022."""
 
 import timm
 import torch
