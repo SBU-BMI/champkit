@@ -7,7 +7,7 @@ A benchmarking toolkit for patch-based image classification in histopathology.
 This toolkit is meant to be fully reproducible. Please start by installing the software environment.
 Then download the datasets.
 
-If you face any problems, please [submit a new issue](https://github.com/kaczmarj/champkit/issues/new)!
+If you face any problems, please [submit a new issue](https://github.com/kaczmarj/champkit/issues/new/choose)!
 
 - [Reproducing our manuscript](#reproducing-our-manuscript)
 - [Installation](#installation)
@@ -61,7 +61,7 @@ To reproduce our submission to the NeurIPS 2022 Datasets & Benchmarks Track (**T
 # Installation
 
 ChampKit requires software and datasets. The next two subsections explain how to install these.
-If you experience any difficulty, please [submit a new issue](https://github.com/kaczmarj/champkit/issues/new).
+If you experience any difficulty, please [submit a new issue](https://github.com/kaczmarj/champkit/issues/new/choose).
 
 ## Software environment
 
@@ -161,7 +161,7 @@ tumor-negative
 tumor-positive
 ```
 
-We would love to incorporate your dataset into ChampKit! Please submit an issue or email jakub.kaczmarzyk@stonybrookmedicine.edu if interested.
+We would love to incorporate your dataset into ChampKit! Please [submit an issue](https://github.com/kaczmarj/champkit/issues/new) or email jakub.kaczmarzyk@stonybrookmedicine.edu if interested.
 
 ## Using other models
 
@@ -273,7 +273,7 @@ Please cite the corresponding papers for any datasets you use.
 # Frequently asked questions
 
 1. How do I get help?
-    - If you have read through this document and still have questions, we encourage you to create a new issue. You could also email jakub.kaczmarzyk@stonybrookmedicine.edu, but we would prefer to have these discussions be public. If you have a question, others likely have similar questions!
+    - If you have read through this document and still have questions, we encourage you to [create a new issue](https://github.com/kaczmarj/champkit/issues/new/choose). You could also email jakub.kaczmarzyk@stonybrookmedicine.edu, but we would prefer to have these discussions be public. If you have a question, others likely have similar questions!
 2. How do I make a change to ChampKit?
     - Please use GitHub pull requests to propose changes.
 3. I want to add a dataset to ChampKit.
