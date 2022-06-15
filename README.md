@@ -24,7 +24,7 @@ If you face any problems, please [submit a new issue](https://github.com/kaczmar
 
 # Reproducing our manuscript
 
-To reproduce our submission to the NeurIPS 2022 Datasets & Benchmarks Track (**TODO**: include link to arxiv), please follow the steps below. Ideally, we would include a script that reproduces the paper from start to finish, but unfortunately there are some steps that must be done manually.
+To reproduce our submission to the NeurIPS 2022 Datasets & Benchmarks Track ([preprint](https://arxiv.org/abs/2206.06862)), please follow the steps below. Ideally, we would include a script that reproduces the paper from start to finish, but unfortunately there are some steps that must be done manually.
 
 1. Get the ChampKit code.
     ```bash
@@ -169,7 +169,19 @@ We use the excellent [`timm`](https://rwightman.github.io/pytorch-image-models/)
 
 # Citations
 
-Please cite the corresponding papers for any datasets you use.
+If you find ChampKit useful, please cite our preprint and the papers corresponding to any datasets you use.
+
+```bibtex
+@misc{kaczmarzyk2022evaluating,
+      title={Evaluating histopathology transfer learning with ChampKit},
+      author={Jakub R. Kaczmarzyk and Tahsin M. Kurc and Shahira Abousamra and Rajarsi Gupta and Joel H. Saltz and Peter K. Koo},
+      year={2022},
+      eprint={2206.06862},
+      archivePrefix={arXiv},
+      primaryClass={q-bio.QM},
+      url={https://arxiv.org/abs/2206.06862}
+}
+```
 
 <details><summary>Task 1 (tumor versus non-tumor classification)</summary>
 

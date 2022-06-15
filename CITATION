@@ -1,0 +1,9 @@
+@misc{kaczmarzyk2022evaluating,
+      title={Evaluating histopathology transfer learning with ChampKit},
+      author={Jakub R. Kaczmarzyk and Tahsin M. Kurc and Shahira Abousamra and Rajarsi Gupta and Joel H. Saltz and Peter K. Koo},
+      year={2022},
+      eprint={2206.06862},
+      archivePrefix={arXiv},
+      primaryClass={q-bio.QM},
+      url={https://arxiv.org/abs/2206.06862}
+}
