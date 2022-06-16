@@ -1,5 +1,6 @@
 # Data
-/data/task1_tumor_notumor/
+/data/task1_tumor_notumor/annotations.csv
+/data/task1_tumor_notumor/images.zip
 /data/task1_tumor_notumor/images/
 /data/task2_tils/TCGA-TILs.tar.gz
 /data/task2_tils/images-tcga-tils/
