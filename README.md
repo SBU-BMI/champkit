@@ -30,7 +30,7 @@ To reproduce our submission to the NeurIPS 2022 Datasets & Benchmarks Track ([pr
     ```bash
     git clone https://github.com/kaczmarj/champkit
     cd champkit
-    git checkout v0.1.0
+    git checkout v0.2.0
     ```
 2. Install software dependencies. See [Software environment](#software-environment) for details.
     ```
