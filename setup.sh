@@ -45,13 +45,13 @@ conda_env_exists(){
 if ! conda_env_exists "champkit"; then
     echo "[champkit] Creating champkit conda environment..."
     conda env create -f environment.yml -n champkit
-else
-    echo "[champkit] Activating champkit conda environment"
-    eval "$(conda shell.bash hook)"
-    set +u
-    conda activate champkit
-    set -u
 fi
+
+echo "[champkit] Activating champkit conda environment"
+eval "$(conda shell.bash hook)"
+set +u
+conda activate champkit
+set -u
 
 echo "[champkit] IMPORTANT: If this your first time running this, I will download ~75 GB of benchmark data now."
 echo "[champkit] This will likely take over two hours."
