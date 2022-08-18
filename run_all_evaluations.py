@@ -171,6 +171,10 @@ def run_all_evaluations(directory) -> pd.DataFrame:
         print("[champkit]   Results:")
         print(f"[champkit]     AUROC={result['auroc']:0.4f}")
         print(f"[champkit]     F1={result['f1']:0.4f}")
+        print(f"[champkit]     FPR={result['fpr']:0.4f}")
+        print(f"[champkit]     FNR={result['fnr']:0.4f}")
+        print(f"[champkit]     TPR={result['tpr']:0.4f}")
+        print(f"[champkit]     TNR={result['tnr']:0.4f}")
         result["epoch"] = epoch  # could be None but that's ok
         all_results.append(result)
         del result  # for our sanity
