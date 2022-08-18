@@ -229,8 +229,6 @@ def validate(args):
     if args.binary_metrics:
         auroc = torchmetrics.AUROC()
         f1 = torchmetrics.F1Score(threshold=thres)
-        sens = torchmetrics.Sensitivity(threshold=thres)
-        spec = torchmetrics.Specificity(threshold=thres)
         statscores = torchmetrics.StatScores(threshold=thres)
     else:
         auroc = torchmetrics.AUROC(num_classes=args.num_classes)
