@@ -300,26 +300,41 @@ def validate(args):
     else:
         top1a = top1.avg
 
-    stats = statscores.compute().numpy()  # TODO: what is the shape of this? (2, 5)?
-    print("Shape of stats obj", stats.shape)
-    print(stats)
-    raise RuntimeError(f"Shape of stats obj: {stats.shape}")
+    stats = statscores.compute().numpy()
+    if stats.shape != (5,):
+        raise NotImplementedError(
+            "Computing confusion matrix stats only valid when num"
+            " classes == 2 and binary-metrics is used.")
+    tp, fp, tn, fn, sup = stats  # sup is support = tp+fn
 
-    fnr = None  # False negative rate
-    fpr = None  # False positive rate
+    fnr = fn / (fn + tp)  # False negative rate
+    fpr = fp / (fp + tn)  # False positive rate
+    tnr = 1 - fpr  # True negative rate
+    tpr = 1 - fnr  # True positive rate
 
     results = OrderedDict(
         model=args.model,
         top1=round(top1a, 4), top1_err=round(100 - top1a, 4),
         auroc=auroc.compute().item(),
         f1=f1.compute().item(),
+        fnr=fnr,
+        fpr=fpr,
+        tnr=tnr,
+        tpr=tpr,
         param_count=round(param_count / 1e6, 2),
         img_size=data_config['input_size'][-1],
         crop_pct=crop_pct,
         interpolation=data_config['interpolation'])
 
-    _logger.info(' * Acc@1 {:.3f} ({:.3f}) AUROC {:.3f} F1 {:.3f}'.format(
-       results['top1'], results['top1_err'], results['auroc'], results['f1']))
+    _logger.info(
+        "***"
+        f"  AUROC {results['auroc']:.3f}\n"
+        f"  F1@{thres:.2f} {results['f1']:.3f}\n"
+        f"  FNR {results['fnr']:.3f}\n"
+        f"  FPR {results['fpr']:.3f}\n"
+        f"  TNR {results['tnr']:.3f}\n"
+        f"  TPR {results['tpr']:.3f}"
+    )
 
     return results
 
