@@ -225,12 +225,19 @@ def validate(args):
     losses = AverageMeter()
     top1 = AverageMeter()
 
+    thres = 0.5  # Threshold of positive values.
     if args.binary_metrics:
         auroc = torchmetrics.AUROC()
-        f1 = torchmetrics.F1Score()
+        f1 = torchmetrics.F1Score(threshold=thres)
+        sens = torchmetrics.Sensitivity(threshold=thres)
+        spec = torchmetrics.Specificity(threshold=thres)
+        statscores = torchmetrics.StatScores(threshold=thres)
     else:
         auroc = torchmetrics.AUROC(num_classes=args.num_classes)
-        f1 = torchmetrics.F1Score(num_classes=args.num_classes)
+        f1 = torchmetrics.F1Score(num_classes=args.num_classes, threshold=thres)
+        sens = torchmetrics.Sensitivity(num_classes=args.num_classes, threshold=thres)
+        spec = torchmetrics.Specificity(num_classes=args.num_classes, threshold=thres)
+        statscores = torchmetrics.StatScores(num_classes=args.num_classes, threshold=thres)
 
     model.eval()
     with torch.no_grad():
@@ -271,8 +278,8 @@ def validate(args):
             if args.binary_metrics:
                 # Keep the probabilities of the "positive" class.
                 probs = probs[:, 1]
-            auroc.update(preds=probs, target=target)
-            f1.update(preds=probs, target=target)
+            for obj in [auroc, f1, sens, spec, statscores]:
+                obj.update(preds=probs, target=target)
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -283,7 +290,7 @@ def validate(args):
                     'Test: [{0:>4d}/{1}]  '
                     'Time: {batch_time.val:.3f}s ({batch_time.avg:.3f}s, {rate_avg:>7.2f}/s)  '
                     'Loss: {loss.val:>7.4f} ({loss.avg:>6.4f})  '
-                    'Acc@1: {top1.val:>7.3f} ({top1.avg:>7.3f})  '
+                    # 'Acc@1: {top1.val:>7.3f} ({top1.avg:>7.3f})  '
                     'AUROC: {auroc:>7.4f} '
                     'F1: {f1:>7.4f}'.format(
                         batch_idx, len(loader), batch_time=batch_time,
@@ -296,6 +303,15 @@ def validate(args):
         top1a = real_labels.get_accuracy(k=1)
     else:
         top1a = top1.avg
+
+    stats = statscores.compute().numpy()  # TODO: what is the shape of this? (2, 5)?
+    print("Shape of stats obj", stats.shape)
+    print(stats)
+    raise RuntimeError(f"Shape of stats obj: {stats.shape}")
+
+    fnr = None  # False negative rate
+    fpr = None  # False positive rate
+
     results = OrderedDict(
         model=args.model,
         top1=round(top1a, 4), top1_err=round(100 - top1a, 4),
