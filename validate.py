@@ -235,8 +235,6 @@ def validate(args):
     else:
         auroc = torchmetrics.AUROC(num_classes=args.num_classes)
         f1 = torchmetrics.F1Score(num_classes=args.num_classes, threshold=thres)
-        sens = torchmetrics.Sensitivity(num_classes=args.num_classes, threshold=thres)
-        spec = torchmetrics.Specificity(num_classes=args.num_classes, threshold=thres)
         statscores = torchmetrics.StatScores(num_classes=args.num_classes, threshold=thres)
 
     model.eval()
@@ -278,7 +276,7 @@ def validate(args):
             if args.binary_metrics:
                 # Keep the probabilities of the "positive" class.
                 probs = probs[:, 1]
-            for obj in [auroc, f1, sens, spec, statscores]:
+            for obj in [auroc, f1, statscores]:
                 obj.update(preds=probs, target=target)
 
             # measure elapsed time
