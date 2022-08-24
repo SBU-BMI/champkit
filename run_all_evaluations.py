@@ -176,6 +176,10 @@ def run_all_evaluations(directory) -> pd.DataFrame:
         print(f"[champkit]     TPR={result['tpr']:0.4f}")
         print(f"[champkit]     TNR={result['tnr']:0.4f}")
         result["epoch"] = epoch  # could be None but that's ok
+        # Add model hyperparams.
+        for k, v in row.iteritems():
+            if k not in result.index:
+                result[k] = v
         all_results.append(result)
         del result  # for our sanity
     df = pd.DataFrame(all_results).reset_index(drop=True)
