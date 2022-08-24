@@ -303,6 +303,8 @@ If you find ChampKit useful, please cite our preprint and the papers correspondi
 8. Why do you want me to use `python -m wandb` instead of `wandb`?
     - Using `python -m wandb` ensures that you use the wandb command installed in the champkit python environment (assuming the champkit conda environment is activated). If you use `wandb` directly, it is possible that this points to a different python environment than champkit. For example, if one had previously installed wandb with `pip install --user wandb`, the wandb executable would be in `~/.local/bin/wandb` and might be used instead of the wandb in the champkit environment.
     - In general, using `python -m PROGRAM` is better practice than using `PROGRAM` directly, because `python -m PROGRAM` guarantees we use `PROGRAM` installed in the current python environment. Using `PROGRAM` on its own relies on the `$PATH` variable, and it is possible that there exist multiple `PROGRAM` installations, one of which could appear in `$PATH` before the one we _think_ we are using.
+9. What version of ChampKit am I using?
+    - Use the command `git describe` to find the version and/or commit of the repository. Each change in this repository is associated with a different version and/or commit.
 
 # Uninstalling ChampKit
 
