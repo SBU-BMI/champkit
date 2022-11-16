@@ -225,12 +225,15 @@ def validate(args):
     losses = AverageMeter()
     top1 = AverageMeter()
 
+    thres = 0.5  # Threshold of positive values.
     if args.binary_metrics:
         auroc = torchmetrics.AUROC()
-        f1 = torchmetrics.F1Score()
+        f1 = torchmetrics.F1Score(threshold=thres)
+        statscores = torchmetrics.StatScores(threshold=thres)
     else:
         auroc = torchmetrics.AUROC(num_classes=args.num_classes)
-        f1 = torchmetrics.F1Score(num_classes=args.num_classes)
+        f1 = torchmetrics.F1Score(num_classes=args.num_classes, threshold=thres)
+        statscores = torchmetrics.StatScores(num_classes=args.num_classes, threshold=thres)
 
     model.eval()
     with torch.no_grad():
@@ -271,8 +274,8 @@ def validate(args):
             if args.binary_metrics:
                 # Keep the probabilities of the "positive" class.
                 probs = probs[:, 1]
-            auroc.update(preds=probs, target=target)
-            f1.update(preds=probs, target=target)
+            for obj in [auroc, f1, statscores]:
+                obj.update(preds=probs, target=target)
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -283,7 +286,7 @@ def validate(args):
                     'Test: [{0:>4d}/{1}]  '
                     'Time: {batch_time.val:.3f}s ({batch_time.avg:.3f}s, {rate_avg:>7.2f}/s)  '
                     'Loss: {loss.val:>7.4f} ({loss.avg:>6.4f})  '
-                    'Acc@1: {top1.val:>7.3f} ({top1.avg:>7.3f})  '
+                    # 'Acc@1: {top1.val:>7.3f} ({top1.avg:>7.3f})  '
                     'AUROC: {auroc:>7.4f} '
                     'F1: {f1:>7.4f}'.format(
                         batch_idx, len(loader), batch_time=batch_time,
@@ -296,18 +299,42 @@ def validate(args):
         top1a = real_labels.get_accuracy(k=1)
     else:
         top1a = top1.avg
+
+    stats = statscores.compute().numpy()
+    if stats.shape != (5,):
+        raise NotImplementedError(
+            "Computing confusion matrix stats only valid when num"
+            " classes == 2 and binary-metrics is used.")
+    tp, fp, tn, fn, sup = stats  # sup is support = tp+fn
+
+    fnr = fn / (fn + tp)  # False negative rate
+    fpr = fp / (fp + tn)  # False positive rate
+    tnr = 1 - fpr  # True negative rate
+    tpr = 1 - fnr  # True positive rate
+
     results = OrderedDict(
         model=args.model,
         top1=round(top1a, 4), top1_err=round(100 - top1a, 4),
         auroc=auroc.compute().item(),
         f1=f1.compute().item(),
+        fnr=fnr,
+        fpr=fpr,
+        tnr=tnr,
+        tpr=tpr,
         param_count=round(param_count / 1e6, 2),
         img_size=data_config['input_size'][-1],
         crop_pct=crop_pct,
         interpolation=data_config['interpolation'])
 
-    _logger.info(' * Acc@1 {:.3f} ({:.3f}) AUROC {:.3f} F1 {:.3f}'.format(
-       results['top1'], results['top1_err'], results['auroc'], results['f1']))
+    _logger.info(
+        "***"
+        f"  AUROC {results['auroc']:.3f}\n"
+        f"  F1@{thres:.2f} {results['f1']:.3f}\n"
+        f"  FNR {results['fnr']:.3f}\n"
+        f"  FPR {results['fpr']:.3f}\n"
+        f"  TNR {results['tnr']:.3f}\n"
+        f"  TPR {results['tpr']:.3f}"
+    )
 
     return results
 

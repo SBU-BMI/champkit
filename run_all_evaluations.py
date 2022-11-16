@@ -122,6 +122,10 @@ def _run_one_evaluation(row: pd.Series) -> pd.Series:
         pretrained=row["pretrained"],
         auroc=tmp_results["auroc"],
         f1=tmp_results["f1"],
+        fpr=tmp_results["fpr"],
+        fnr=tmp_results["fnr"],
+        tpr=tmp_results["tpr"],
+        tnr=tmp_results["tnr"],
         accuracy=tmp_results["top1"],
         checkpoint=checkpoint,
         classmap=classmap_file,
@@ -167,7 +171,15 @@ def run_all_evaluations(directory) -> pd.DataFrame:
         print("[champkit]   Results:")
         print(f"[champkit]     AUROC={result['auroc']:0.4f}")
         print(f"[champkit]     F1={result['f1']:0.4f}")
+        print(f"[champkit]     FPR={result['fpr']:0.4f}")
+        print(f"[champkit]     FNR={result['fnr']:0.4f}")
+        print(f"[champkit]     TPR={result['tpr']:0.4f}")
+        print(f"[champkit]     TNR={result['tnr']:0.4f}")
         result["epoch"] = epoch  # could be None but that's ok
+        # Add model hyperparams.
+        for k, v in row.iteritems():
+            if k not in result.index:
+                result[k] = v
         all_results.append(result)
         del result  # for our sanity
     df = pd.DataFrame(all_results).reset_index(drop=True)
