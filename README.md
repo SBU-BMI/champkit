@@ -24,7 +24,7 @@ If you face any problems, please [submit a new issue](https://github.com/kaczmar
 
 # Reproducing our manuscript
 
-To reproduce our submission to the NeurIPS 2022 Datasets & Benchmarks Track ([preprint](https://arxiv.org/abs/2206.06862)), please follow the steps below. Ideally, we would include a script that reproduces the paper from start to finish, but unfortunately there are some steps that must be done manually.
+To reproduce our [preprint](https://arxiv.org/abs/2206.06862), please follow the steps below. Ideally, we would include a script that reproduces the paper from start to finish, but unfortunately there are some steps that must be done manually.
 
 1. Get the ChampKit code.
     ```bash
