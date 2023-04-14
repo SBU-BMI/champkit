@@ -122,6 +122,11 @@ def _run_one_evaluation(row: pd.Series) -> pd.Series:
         pretrained=row["pretrained"],
         auroc=tmp_results["auroc"],
         f1=tmp_results["f1"],
+        fp=tmp_results["fp"],
+        fn=tmp_results["fn"],
+        tp=tmp_results["tp"],
+        tn=tmp_results["tn"],
+        # rates
         fpr=tmp_results["fpr"],
         fnr=tmp_results["fnr"],
         tpr=tmp_results["tpr"],
@@ -130,6 +135,7 @@ def _run_one_evaluation(row: pd.Series) -> pd.Series:
         checkpoint=checkpoint,
         classmap=classmap_file,
         num_classes=row["num_classes"],
+        seed=row['seed'],
     )
 
     return pd.Series(results)
@@ -190,7 +196,7 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument(
         "--directory",
-        default="sweep-output",
+        required=True,
         help="Top-level directory that contains individual runs.",
     )
     p.add_argument(
