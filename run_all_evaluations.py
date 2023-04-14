@@ -106,7 +106,7 @@ def _run_one_evaluation(row: pd.Series) -> pd.Series:
     --class-map={classmap_file}""".strip()
     if binary_metrics:
         program_and_args += " --binary-metrics "
-    program_and_args += row["data_dir"]
+    program_and_args += f' {row["data_dir"]}'
 
     p = subprocess.run(program_and_args.split(), capture_output=True, env=os.environ)
 
