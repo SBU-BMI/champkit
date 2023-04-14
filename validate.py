@@ -27,6 +27,9 @@ import torch.nn.parallel
 from collections import OrderedDict
 from contextlib import suppress
 import torchmetrics
+from torchmetrics.classification import (
+    BinaryStatScores, MulticlassStatScores, BinaryAUROC, MulticlassAUROC, BinaryF1Score, MulticlassF1Score
+)
 
 from timm.models import create_model, apply_test_time_pool, load_checkpoint, is_model, list_models
 from timm.data import create_dataset, create_loader, resolve_data_config, RealLabelsImagenet
@@ -227,13 +230,13 @@ def validate(args):
 
     thres = 0.5  # Threshold of positive values.
     if args.binary_metrics:
-        auroc = torchmetrics.AUROC()
-        f1 = torchmetrics.F1Score(threshold=thres)
-        statscores = torchmetrics.StatScores(threshold=thres)
+        auroc = BinaryAUROC()
+        f1 = BinaryF1Score(threshold=thres)
+        statscores = BinaryStatScores(threshold=thres)
     else:
-        auroc = torchmetrics.AUROC(num_classes=args.num_classes)
-        f1 = torchmetrics.F1Score(num_classes=args.num_classes, threshold=thres)
-        statscores = torchmetrics.StatScores(num_classes=args.num_classes, threshold=thres)
+        auroc = MulticlassAUROC(num_classes=args.num_classes, average=None)
+        f1 = MulticlassF1Score(num_classes=args.num_classes, average=None)
+        statscores = MulticlassStatScores(num_classes=args.num_classes, average=None)
 
     model.eval()
     with torch.no_grad():
@@ -307,6 +310,9 @@ def validate(args):
             " classes == 2 and binary-metrics is used.")
     tp, fp, tn, fn, sup = stats  # sup is support = tp+fn
 
+    # TODO: make sure this works with multi-class support.
+    if args.binary_metrics:
+        raise NotImplementedError("Verify that multi-class evaluation functions properly")
     fnr = fn / (fn + tp)  # False negative rate
     fpr = fp / (fp + tn)  # False positive rate
     tnr = 1 - fpr  # True negative rate
