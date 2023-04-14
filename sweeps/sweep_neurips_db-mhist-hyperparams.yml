@@ -1,0 +1,87 @@
+program: train.py
+method: grid
+metric:
+  goal: minimize
+  name: eval_loss
+
+parameters:
+  model:
+    value: resnet18
+  pretrained:
+    values: [true, false]
+  data-dir:
+    values:
+      # We prioritize task 6 because it will finish in the least amount of time.
+      # - data/task1_tumor_notumor/images/
+      # - data/task2_tils/images-tcga-tils/pancancer/
+      # - data/task3_msi_crc_ffpe/images/
+      # - data/task4_msi_crc_frozen/images/
+      # - data/task5_msi_stad_ffpe/images/
+      - data/task6_precancer_vs_benign_polyps/images-split/
+  seed:
+    value: 42
+  lr:
+    values: [0.01, 0.001, 0.0001]
+  freeze-encoder:
+    values: [true, false]
+  epochs:
+    value: 500
+  sched:
+    value: [null, cosine, step]
+  hflip:
+    value: 0.5
+  vflip:
+    value: 0.5
+  no-aug:
+    values: [true, false]
+  batch-size:
+    values: [16, 32, 64, 128]
+  opt:
+    values: [adam, adamw, sgd]
+  opt-eps:
+    value: .001
+  warmup-lr:
+    value: 1e-6
+  weight-decay:
+    value: 0.01
+  drop:
+    value: 0.3
+  drop-path:
+    value: 0.0
+  model-ema:
+    value: false
+  model-ema-decay:
+    value: 0.9999
+  #aa:
+  #  value: null
+  remode:
+    value: pixel
+  reprob:
+    value: 0.0  # Do not erase parts of image.
+  amp:
+    values: [true, false]
+  train-split:
+    value: train
+  val-split:
+    value: val
+  workers:
+    value: 4
+  num-classes:
+    value: 2
+  decay-epochs:
+    value: 2.4
+  decay-rate:
+    value: .97
+  log-wandb:
+    value: true
+  experiment:
+    value: neuripsdb-mhist-hyperparams
+  output:
+    value: sweep-output-mhist-hyperparams/
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_boolean_flags}
+
