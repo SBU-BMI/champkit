@@ -93,7 +93,7 @@ def _run_one_evaluation(row: pd.Series) -> pd.Series:
     num_classes = int(row["num_classes"])
     binary_metrics = num_classes in [1, 2]
     print(f"[champkit]   num_classes={num_classes}")
-    print(f"[champkit]   using binary metrics = {binary_metrics}")
+    print(f"[champkit]   using {'binary' if binary_metrics else 'multiclass'} metrics")
 
     program_and_args = f"""
     {sys.executable} \
