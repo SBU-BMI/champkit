@@ -90,6 +90,11 @@ def _run_one_evaluation(row: pd.Series) -> pd.Series:
 
     print(f"[champkit]   checkpoint={checkpoint}")
 
+    num_classes = int(row["num_classes"])
+    binary_metrics = num_classes in [1, 2]
+    print(f"[champkit]   num_classes={num_classes}")
+    print(f"[champkit]   using binary metrics = {binary_metrics}")
+
     program_and_args = f"""
     {sys.executable} \
     validate.py \
@@ -97,11 +102,11 @@ def _run_one_evaluation(row: pd.Series) -> pd.Series:
     --checkpoint={checkpoint} \
     --batch-size=128 \
     --split=test \
-    --num-classes={row["num_classes"]} \
-    --class-map={classmap_file} \
-    --binary-metrics \
-    {row["data_dir"]}
-    """.strip()
+    --num-classes={num_classes} \
+    --class-map={classmap_file}""".strip()
+    if binary_metrics:
+        program_and_args += " --binary-metrics "
+    program_and_args += row["data_dir"]
 
     p = subprocess.run(program_and_args.split(), capture_output=True, env=os.environ)
 
