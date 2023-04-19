@@ -78,7 +78,7 @@ def _get_results_json_from_stdout(stdout: str) -> Dict:
     return results
 
 
-def _run_one_evaluation(row: pd.Series) -> pd.Series:
+def _run_one_evaluation(row: pd.Series) -> pd.DataFrame:
     """Run an evaluation given a row of the dataframe that contains info on all runs."""
     row = row.copy()  # make sure we don't modify original
 
@@ -91,21 +91,17 @@ def _run_one_evaluation(row: pd.Series) -> pd.Series:
     print(f"[champkit]   checkpoint={checkpoint}")
 
     num_classes = int(row["num_classes"])
-    binary_metrics = num_classes in [1, 2]
     print(f"[champkit]   num_classes={num_classes}")
-    print(f"[champkit]   using {'binary' if binary_metrics else 'multiclass'} metrics")
 
     program_and_args = f"""
     {sys.executable} \
     validate.py \
     --model={row["model"]} \
     --checkpoint={checkpoint} \
-    --batch-size=128 \
+    --batch-size=64 \
     --split=test \
     --num-classes={num_classes} \
     --class-map={classmap_file}""".strip()
-    if binary_metrics:
-        program_and_args += " --binary-metrics "
     program_and_args += f' {row["data_dir"]}'
 
     p = subprocess.run(program_and_args.split(), capture_output=True, env=os.environ)
@@ -125,25 +121,21 @@ def _run_one_evaluation(row: pd.Series) -> pd.Series:
         model=row["model"],
         data_dir=row["data_dir"],
         pretrained=row["pretrained"],
-        auroc=tmp_results["auroc"],
-        f1=tmp_results["f1"],
-        fp=tmp_results["fp"],
-        fn=tmp_results["fn"],
-        tp=tmp_results["tp"],
-        tn=tmp_results["tn"],
-        # rates
-        fpr=tmp_results["fpr"],
-        fnr=tmp_results["fnr"],
-        tpr=tmp_results["tpr"],
-        tnr=tmp_results["tnr"],
-        accuracy=tmp_results["top1"],
         checkpoint=checkpoint,
         classmap=classmap_file,
         num_classes=row["num_classes"],
         seed=row['seed'],
     )
-
-    return pd.Series(results)
+    if results["num_classes"] > 100:
+        raise ValueError("this script does not support num_classes>100")
+    # Make a dataframe with one row.
+    df = pd.DataFrame(results, index=[0])
+    # Fill in the stats from evaluation.
+    for stat in ["auroc", "f1", "fp", "fn", "tp", "tn", "fpr", "fnr", "tpr", "tnr", "accuracy"]:
+        cols = [f"{stat}_cls{i:02d}" for i in range(num_classes)]
+        df[cols] = tmp_results[stat]
+    assert len(df) == 1
+    return df
 
 
 def run_all_evaluations(directory) -> pd.DataFrame:
@@ -164,7 +156,7 @@ def run_all_evaluations(directory) -> pd.DataFrame:
     if df.shape[0] == 0:
         raise ChampKitException("no model_best.pth.tar files found...")
 
-    all_results: List[Dict] = []
+    all_results: List[pd.DataFrame] = []
     for i, (_, row) in enumerate(df.iterrows()):
         print(f"[champkit] evaluating run {i+1} of {df.shape[0]}...")
         print(f"[champkit]   run_dir={row['directory']}")
@@ -180,20 +172,31 @@ def run_all_evaluations(directory) -> pd.DataFrame:
         del state_dict
         result = _run_one_evaluation(row=row)
         print("[champkit]   Results:")
-        print(f"[champkit]     AUROC={result['auroc']:0.4f}")
-        print(f"[champkit]     F1={result['f1']:0.4f}")
-        print(f"[champkit]     FPR={result['fpr']:0.4f}")
-        print(f"[champkit]     FNR={result['fnr']:0.4f}")
-        print(f"[champkit]     TPR={result['tpr']:0.4f}")
-        print(f"[champkit]     TNR={result['tnr']:0.4f}")
+        for class_idx in range(result["num_classes"][0]):
+            print(f"[champkit]     Class {class_idx}")
+            print(f"[champkit]       Accuracy={result[f'accuracy_cls{class_idx:02d}'][0]:0.3f}")
+            print(f"[champkit]       AUROC={result[f'auroc_cls{class_idx:02d}'][0]:0.3f}")
+            print(f"[champkit]       F1={result[f'f1_cls{class_idx:02d}'][0]:0.3f}")
+            print(f"[champkit]       FPR={result[f'fpr_cls{class_idx:02d}'][0]:0.3f}")
+            print(f"[champkit]       FNR={result[f'fnr_cls{class_idx:02d}'][0]:0.3f}")
+            print(f"[champkit]       TPR={result[f'tpr_cls{class_idx:02d}'][0]:0.3f}")
+            print(f"[champkit]       TNR={result[f'tnr_cls{class_idx:02d}'][0]:0.3f}")
+            print("[champkit]")
+
         result["epoch"] = epoch  # could be None but that's ok
-        # Add model hyperparams.
-        for k, v in row.iteritems():
-            if k not in result.index:
-                result[k] = v
+
+        # Convert list or tuple to string to allow addition to dataframe.
+        row = row.map(lambda p: str(p) if isinstance(p, (list, tuple)) else p)
+        # Drop any names that are already in the dataframe.
+        row = row[~row.index.isin(result.columns)]
+        # Add these new values.
+        result = pd.concat((result, row.to_frame().T), axis=1)
+        assert len(result) == 1
         all_results.append(result)
-        del result  # for our sanity
-    df = pd.DataFrame(all_results).reset_index(drop=True)
+        del result, row  # for our sanity
+        print()
+
+    df = pd.concat(all_results, axis=0, ignore_index=True)
     return df
 
 
@@ -207,13 +210,13 @@ if __name__ == "__main__":
     p.add_argument(
         "--output-csv",
         default=None,
-        help="Output CSV with results. Default: all_evaluations_YYYYMMDDHHmmss.csv",
+        help="Output CSV with results. Default: champkit_evaluations_YYYYMMDDHHmmss.csv",
     )
     args = p.parse_args()
 
     if args.output_csv is None:
         args.output_csv = (
-            f'all_evaluations_{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}.csv'
+            f'champkit_evaluations_{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}.csv'
         )
 
     print(f"[champkit] Evaluating runs in {args.directory}", flush=True)
