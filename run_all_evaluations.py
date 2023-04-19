@@ -1,4 +1,9 @@
-"""Evaluate all model training runs in a directory."""
+"""Evaluate all model training runs in a directory.
+
+This script creates a CSV file with the test-set performance of each model, prints a
+summary of the best models, and saves a figure portraying the test-set performance of
+all models.
+"""
 
 import argparse
 import datetime
@@ -9,7 +14,9 @@ import subprocess
 import sys
 from typing import Dict, List
 
+import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
 import torch
 import yaml
 
@@ -190,7 +197,8 @@ def run_all_evaluations(directory) -> pd.DataFrame:
         # Drop any names that are already in the dataframe.
         row = row[~row.index.isin(result.columns)]
         # Add these new values.
-        result = pd.concat((result, row.to_frame().T), axis=1)
+        row = row.to_frame(name=0).T  # Set index to 0...
+        result = pd.concat((result, row), axis=1)
         assert len(result) == 1
         all_results.append(result)
         del result, row  # for our sanity
@@ -198,6 +206,71 @@ def run_all_evaluations(directory) -> pd.DataFrame:
 
     df = pd.concat(all_results, axis=0, ignore_index=True)
     return df
+
+
+def _print_summary(df: pd.DataFrame, output_pdf: str):
+    print()
+    print("***********************************")
+    print("        SUMMARY OF EVALUATION      ")
+    print("***********************************")
+    print()
+
+    num_classes = df["num_classes"][0]
+    metric_info = {
+        "auroc": {"columns": [f"auroc_cls{c:02d}" for c in range(num_classes)], "mode": "max"},
+        "accuracy": {"columns": [f"accuracy_cls{c:02d}" for c in range(num_classes)], "mode": "max"},
+        "tpr": {"columns": [f"tpr_cls{c:02d}" for c in range(num_classes)], "mode": "max"},
+        "tnr": {"columns": [f"tnr_cls{c:02d}" for c in range(num_classes)], "mode":"max"},
+        "fpr": {"columns": [f"fpr_cls{c:02d}" for c in range(num_classes)], "mode":"min"},
+        "fnr": {"columns": [f"fnr_cls{c:02d}" for c in range(num_classes)], "mode":"min"},
+    }
+
+    fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(10, 13))
+
+    TOPK = 3
+    best_ids = []
+    for (metric, info), ax in zip(metric_info.items(), axes.flat):
+        metric_values = df[info["columns"]].copy()
+        mode = info["mode"]
+        means_per_class = metric_values.mean(axis=1)
+        metric_values[f"{metric}_mean"] = means_per_class
+
+        print(f"***** {metric.upper()} *****")
+        for col in metric_values.columns:
+            if mode == "max":
+                best_models = metric_values[col].nlargest(TOPK)
+            elif mode == "min":
+                best_models = metric_values[col].nsmallest(TOPK)
+            else:
+                raise NotImplementedError(f"unknown mode '{mode}'")
+
+            print(f"Top {TOPK} models by {metric} -- '{col}'\t{best_models.index.tolist()}")
+            best_ids.extend(best_models.index.tolist())
+        print()
+
+        metric_values["model_number"] = metric_values.index.copy()
+        metric_values_melted = metric_values.melt(id_vars="model_number")
+        sns.scatterplot(data=metric_values_melted, x="model_number", y="value", hue="variable", ax=ax)
+        ax.set_title(f"{metric.title()} by model number")
+        ax.set_ylabel(metric)
+        ax.set_ylim(-0.05, 1.05)
+        ax.set_xlabel("Model number (row in CSV from evaluation)")
+
+    fig.tight_layout()
+    print(f"[champkit] Saving plots of model performance to {output_pdf}")
+    plt.savefig(output_pdf)
+
+    best_ids = sorted(set(best_ids))
+    print()
+    print("*" * 40)
+    print(f"Model checkpoints that were in the top {TOPK} of any evaluation metric:")
+    print("  Please refer to the evaluation summary above for the best models per evaluation metric.")
+    print("  NOTE: these are NOT sorted by performance. The models are sorted by their position in the evaluation CSV.")
+    print()
+    for model_number, checkpoint in df.loc[best_ids, "checkpoint"].iteritems():
+        print(f"{str(model_number):>3s}\t{checkpoint}")
+    print("*" * 40)
+    print()
 
 
 if __name__ == "__main__":
@@ -223,4 +296,7 @@ if __name__ == "__main__":
     df = run_all_evaluations(args.directory)
     print(f"[champkit] Saving evaluation results to {args.output_csv}")
     df.to_csv(args.output_csv, index=False)
+
+    output_pdf = Path(args.output_csv).with_suffix(".pdf")
+    _print_summary(df=df, output_pdf=output_pdf)
     print("[champkit] Done!")
