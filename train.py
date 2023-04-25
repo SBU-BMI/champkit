@@ -868,7 +868,7 @@ def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix='')
     losses_m = AverageMeter()
     top1_m = AverageMeter()
     # top5_m = AverageMeter()
-    auroc = torchmetrics.AUROC(num_classes=args.num_classes)
+    auroc = torchmetrics.classification.MulticlassAUROC(num_classes=args.num_classes)
 
     model.eval()
 
