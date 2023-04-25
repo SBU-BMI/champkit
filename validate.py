@@ -27,6 +27,9 @@ import torch.nn.parallel
 from collections import OrderedDict
 from contextlib import suppress
 import torchmetrics
+from torchmetrics.classification import (
+    BinaryAccuracy, BinaryStatScores, MulticlassStatScores, BinaryAUROC, MulticlassAccuracy, MulticlassAUROC, BinaryF1Score, MulticlassF1Score
+)
 
 from timm.models import create_model, apply_test_time_pool, load_checkpoint, is_model, list_models
 from timm.data import create_dataset, create_loader, resolve_data_config, RealLabelsImagenet
@@ -122,14 +125,15 @@ parser.add_argument('--real-labels', default='', type=str, metavar='FILENAME',
                     help='Real labels JSON file for imagenet evaluation')
 parser.add_argument('--valid-labels', default='', type=str, metavar='FILENAME',
                     help='Valid label indices txt file for validation of partial label space')
-parser.add_argument('--binary-metrics', action="store_true",
-                    help='For two-class tasks, binarize prediction into single class.')
 
 
 def validate(args):
     # might as well try to validate something
-    if args.binary_metrics and args.num_classes != 2:
-        raise ValueError("cannot use binary metrics with --num-classes != 2")
+    if args.num_classes < 2:
+        raise ValueError(
+            f"models must be trained with at least 2 classes but got {args.num_classes}."
+            " In the case of binary classification, use 2 classes where the first class"
+            " is negative and second class is positive.")
     args.pretrained = args.pretrained or not args.checkpoint
     args.prefetcher = not args.no_prefetcher
     amp_autocast = suppress  # do nothing
@@ -203,6 +207,7 @@ def validate(args):
         valid_labels = None
 
     if args.real_labels:
+        raise NotImplementedError("real_labels for ImageNet is not implemented here")
         real_labels = RealLabelsImagenet(dataset.filenames(basename=True), real_json=args.real_labels)
     else:
         real_labels = None
@@ -223,17 +228,12 @@ def validate(args):
 
     batch_time = AverageMeter()
     losses = AverageMeter()
-    top1 = AverageMeter()
 
-    thres = 0.5  # Threshold of positive values.
-    if args.binary_metrics:
-        auroc = torchmetrics.AUROC()
-        f1 = torchmetrics.F1Score(threshold=thres)
-        statscores = torchmetrics.StatScores(threshold=thres)
-    else:
-        auroc = torchmetrics.AUROC(num_classes=args.num_classes)
-        f1 = torchmetrics.F1Score(num_classes=args.num_classes, threshold=thres)
-        statscores = torchmetrics.StatScores(num_classes=args.num_classes, threshold=thres)
+    print("Creating objects to calculate metrics")
+    acc = MulticlassAccuracy(num_classes=args.num_classes, average=None, top_k=1)
+    auroc = MulticlassAUROC(num_classes=args.num_classes, average=None)
+    f1 = MulticlassF1Score(num_classes=args.num_classes, average=None)
+    statscores = MulticlassStatScores(num_classes=args.num_classes, average=None)
 
     model.eval()
     with torch.no_grad():
@@ -252,9 +252,17 @@ def validate(args):
             if args.channels_last:
                 input = input.contiguous(memory_format=torch.channels_last)
 
+            if input.shape[0] != target.shape[0]:
+                raise ValueError(f"input and target have different batch sizes: {input.shape[0]} and {target.shape[0]}")
+
             # compute output
             with amp_autocast():
                 output = model(input)
+
+            if output.ndim != 2:
+                raise ValueError(f"Expected the model output to have 2 dimensions but got {output.ndim}")
+            if output.shape[1] != args.num_classes:
+                raise ValueError(f"expected mdoel output to have shape {args.num_classes} but got {output.shape[1]}")
 
             if valid_labels is not None:
                 output = output[:, valid_labels]
@@ -264,17 +272,14 @@ def validate(args):
                 real_labels.add_result(output)
 
             # measure accuracy and record loss
-            acc1, _ = accuracy(output.detach(), target, topk=(1, 5))
+            # acc1, _ = accuracy(output.detach(), target, topk=(1, 5))
             losses.update(loss.item(), input.size(0))
-            top1.update(acc1.item(), input.size(0))
 
-            # Calculate AUROC.
             probs = torch.nn.functional.softmax(output, dim=1).detach().cpu()
             target = target.detach().cpu()
-            if args.binary_metrics:
-                # Keep the probabilities of the "positive" class.
-                probs = probs[:, 1]
-            for obj in [auroc, f1, statscores]:
+            if target.ndim != 1:
+                raise ValueError(f"expected target to have 1 dimension but got {target.ndim}")
+            for obj in [acc, auroc, f1, statscores]:
                 obj.update(preds=probs, target=target)
 
             # measure elapsed time
@@ -283,30 +288,32 @@ def validate(args):
 
             if batch_idx % args.log_freq == 0:
                 _logger.info(
-                    'Test: [{0:>4d}/{1}]  '
-                    'Time: {batch_time.val:.3f}s ({batch_time.avg:.3f}s, {rate_avg:>7.2f}/s)  '
-                    'Loss: {loss.val:>7.4f} ({loss.avg:>6.4f})  '
-                    # 'Acc@1: {top1.val:>7.3f} ({top1.avg:>7.3f})  '
-                    'AUROC: {auroc:>7.4f} '
-                    'F1: {f1:>7.4f}'.format(
-                        batch_idx, len(loader), batch_time=batch_time,
-                        rate_avg=input.size(0) / batch_time.avg,
-                        loss=losses, top1=top1, auroc=0, f1=0)) #auroc=auroc.compute().item(),
-                        #f1=f1.compute().item()))
+                    f'Test: [{batch_idx:>4d}/{len(loader)}]  '
+                    f'Loss: {losses.val:>7.4f} ({losses.avg:>6.4f})  '
+                    f'AUROC (class-wise): {[round(a, 4) for a in auroc.compute().numpy()]} '
+                    f'F1 (class-wise): {[round(a, 4) for a in f1.compute().numpy()]} '
+                    f'Time: {batch_time.val:.3f}s ({batch_time.avg:.3f}s, {input.size(0)/batch_time.avg:>7.2f}/s)  '
+                )
 
-    if real_labels is not None:
-        # real labels mode replaces topk values at the end
-        top1a = real_labels.get_accuracy(k=1)
-    else:
-        top1a = top1.avg
+    # We do not implement real_labels.
+    # if real_labels is not None:
+    #     # real labels mode replaces topk values at the end
+    #     top1a = real_labels.get_accuracy(k=1)
+    # else:
+    #     top1a = top1.avg
 
-    stats = statscores.compute().numpy()
-    if stats.shape != (5,):
-        raise NotImplementedError(
-            "Computing confusion matrix stats only valid when num"
-            " classes == 2 and binary-metrics is used.")
-    tp, fp, tn, fn, sup = stats  # sup is support = tp+fn
+    stats = statscores.compute()
+    if stats.shape != (args.num_classes, 5):
+        raise ValueError(f"expects statscores output to have shape {(args.num_classes, 5)} but got {stats.shape}")
+    # Last dimension corresponds to tp, fp, tn, fn, sup
+    # Each of these is an array of shape (num_classes,)
+    tp = stats[:, 0]
+    fp = stats[:, 1]
+    tn = stats[:, 2]
+    fn = stats[:, 3]
+    sup = stats[:, 4]  # sup is support = tp+fn
 
+    # Calculate each on a per-class basis.
     fnr = fn / (fn + tp)  # False negative rate
     fpr = fp / (fp + tn)  # False positive rate
     tnr = 1 - fpr  # True negative rate
@@ -314,27 +321,33 @@ def validate(args):
 
     results = OrderedDict(
         model=args.model,
-        top1=round(top1a, 4), top1_err=round(100 - top1a, 4),
-        auroc=auroc.compute().item(),
-        f1=f1.compute().item(),
-        fnr=fnr,
-        fpr=fpr,
-        tnr=tnr,
-        tpr=tpr,
+        accuracy=acc.compute().numpy().tolist(),
+        auroc=auroc.compute().numpy().tolist(),
+        f1=f1.compute().numpy().tolist(),
+        fn=fn.numpy().tolist(),
+        fp=fp.numpy().tolist(),
+        tn=tn.numpy().tolist(),
+        tp=tp.numpy().tolist(),
+        fnr=fnr.numpy().tolist(),
+        fpr=fpr.numpy().tolist(),
+        tnr=tnr.numpy().tolist(),
+        tpr=tpr.numpy().tolist(),
         param_count=round(param_count / 1e6, 2),
         img_size=data_config['input_size'][-1],
-        crop_pct=crop_pct,
         interpolation=data_config['interpolation'])
 
-    _logger.info(
-        "***"
-        f"  AUROC {results['auroc']:.3f}\n"
-        f"  F1@{thres:.2f} {results['f1']:.3f}\n"
-        f"  FNR {results['fnr']:.3f}\n"
-        f"  FPR {results['fpr']:.3f}\n"
-        f"  TNR {results['tnr']:.3f}\n"
-        f"  TPR {results['tpr']:.3f}"
-    )
+    _logger.info("***")
+    for class_idx in range(args.num_classes):
+        _logger.info(
+            f"Class {class_idx}\n"
+            f"  Acc   {results['accuracy'][class_idx]:.3f}\n"
+            f"  AUROC {results['auroc'][class_idx]:.3f}\n"
+            f"  F1    {results['f1'][class_idx]:.3f}\n"
+            f"  FNR   {results['fnr'][class_idx]:.3f}\n"
+            f"  FPR   {results['fpr'][class_idx]:.3f}\n"
+            f"  TNR   {results['tnr'][class_idx]:.3f}\n"
+            f"  TPR   {results['tpr'][class_idx]:.3f}"
+        )
 
     return results
 

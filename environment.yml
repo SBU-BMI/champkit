@@ -112,7 +112,7 @@ dependencies:
   - tbb=2021.5.0=h924138e_1
   - threadpoolctl=3.1.0=pyh8a188c0_0
   - tk=8.6.12=h27826a3_0
-  - torchmetrics=0.8.2=pyhd8ed1ab_0
+  - torchmetrics=0.11.4=pyhd8ed1ab_0
   - torchvision=0.12.0=py39_cu113
   - typing_extensions=4.2.0=pyha770c72_1
   - tzdata=2022a=h191b570_0
