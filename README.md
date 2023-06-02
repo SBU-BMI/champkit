@@ -3,6 +3,8 @@
 [![Overview of ChampKit](assets/figure-overview.webp)](assets/figure-overview.webp?raw=true)
 <sub>_ChampKit_: Comprehensive Histopathology Assessment of Model Predictions toolKit.</sub>
 
+| [Preprint](https://arxiv.org/abs/2206.06862) | [Journal Link](https://doi.org/10.1016/j.cmpb.2023.107631) |
+
 A benchmarking toolkit for patch-based image classification in histopathology.
 
 This toolkit is meant to be fully reproducible. Please start by installing the software environment.
@@ -24,13 +26,13 @@ If you face any problems, please [submit a new issue](https://github.com/kaczmar
 
 # Reproducing our manuscript
 
-To reproduce our [preprint](https://arxiv.org/abs/2206.06862), please follow the steps below. Ideally, we would include a script that reproduces the paper from start to finish, but unfortunately there are some steps that must be done manually.
+To reproduce our [paper](https://doi.org/10.1016/j.cmpb.2023.107631), please follow the steps below. Ideally, we would include a script that reproduces the paper from start to finish, but unfortunately there are some steps that must be done manually.
 
 1. Get the ChampKit code.
     ```bash
     git clone https://github.com/kaczmarj/champkit
     cd champkit
-    git checkout v0.2.0
+    git checkout 51be0b36608a4380fac58bc593039fed041073a3
     ```
 2. Install software dependencies. See [Software environment](#software-environment) for details.
     ```
@@ -169,17 +171,18 @@ We use the excellent [`timm`](https://rwightman.github.io/pytorch-image-models/)
 
 # Citations
 
-If you find ChampKit useful, please cite our preprint and the papers corresponding to any datasets you use.
+If you find ChampKit useful, please consider citing our paper and the papers corresponding to any datasets you use.
 
 ```bibtex
-@misc{kaczmarzyk2022evaluating,
-      title={Evaluating histopathology transfer learning with ChampKit},
-      author={Jakub R. Kaczmarzyk and Tahsin M. Kurc and Shahira Abousamra and Rajarsi Gupta and Joel H. Saltz and Peter K. Koo},
-      year={2022},
-      eprint={2206.06862},
-      archivePrefix={arXiv},
-      primaryClass={q-bio.QM},
-      url={https://arxiv.org/abs/2206.06862}
+@article{kaczmarzyk2023champkit,
+    title={ChampKit: a framework for rapid evaluation of deep neural networks for patch-based histopathology classification},
+    journal={Computer Methods and Programs in Biomedicine},
+    pages={107631},
+    year= {2023},
+    issn= {0169-2607},
+    doi={https://doi.org/10.1016/j.cmpb.2023.107631},
+    url={https://www.sciencedirect.com/science/article/pii/S0169260723002961},
+    author={Jakub R. Kaczmarzyk and Rajarsi Gupta and Tahsin M. Kurc and Shahira Abousamra and Joel H. Saltz and Peter K. Koo},
 }
 ```
 
